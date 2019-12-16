@@ -81,7 +81,7 @@ const Map = () => {
       setServiceWorkerReady(true)
     })
   }, [])
-  const [dates, setDates] = useState({ start: '2019-01-01T00:00:00.000Z', end: '2019-02-01T00:00:00.000Z' });
+  const [dates, setDates] = useState({ start: '2019-01-01T00:00:00.000Z', end: '2019-04-01T00:00:00.000Z' });
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false)
   const [viewport, setViewport] = useState({
     width: '100%',
@@ -94,7 +94,7 @@ const Map = () => {
     const startTimestampMs = new Date(dates.start).getTime()
     const startTimestampDays = Math.round(startTimestampMs / 1000 / 60 / 60 / 24)
     const s = { ...defaultMapStyle }
-    // s.layers[2].filter = ['has', startTimestampDays.toString()]
+    s.layers[2].filter = ['has', startTimestampDays.toString()]
     return s
   }, [dates])
 

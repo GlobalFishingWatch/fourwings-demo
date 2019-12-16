@@ -53,12 +53,38 @@ self.addEventListener('fetch', (e) => {
           var tile = new VectorTile(new Pbf(buffer))
           const tileLayer = tile.layers['fishing']
           const features = []
+          
+          const INTERVAL_DAY = 10
+          const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
+          const ABS_END_DAY = new Date('2020-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
+          const ABS_INTERVAL_DAY = ABS_END_DAY - ABS_START_DAY
 
           for (let i = 0; i < tileLayer.length; i++) {
             const feature = tileLayer.feature(i).toGeoJSON(x,y,z)
             // console.log(feature)
             // feature.geometry.coordinates[0] = feature.geometry.coordinates[0] - 10
             // console.log(feature.toGeoJSON(x,y,z))
+
+            const values = feature.properties
+            // console.log(values)
+            delete values.cell
+            const valuesWithinInterval = {}
+            // go from abs start to abs end
+            for (let d = ABS_START_DAY; d < ABS_END_DAY; d++) {
+              // const total = values[d]
+              // compute total at d aggregating all values within interval
+              let total = 0
+              for (let dd = d; dd < Math.min(d + INTERVAL_DAY, ABS_END_DAY); dd++) {
+                if (values[dd] !== undefined) {
+                  total += values[dd]
+                }
+              }
+              if (total > 0) {
+                valuesWithinInterval[d] = total
+              }
+            }
+            // console.log(valuesWithinInterval)
+            feature.properties = valuesWithinInterval
             features.push(feature)
           }
           const geoJSON = {
@@ -70,13 +96,6 @@ self.addEventListener('fetch', (e) => {
           const newTile = tileindex.getTile(z, x, y)
           const newBuff = vtpbf.fromGeojsonVt({ 'fishing': newTile })
 
-          // var buff = vtpbf(tile)
-          // console.log(orig, buff)
-
-
-          // console.log('plp')
-          // console.log(buffer)
-          // do something with buffer
           return new Response(newBuff, {
             status: f.status,
             statusText: f.statusText,
