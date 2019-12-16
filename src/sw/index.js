@@ -54,10 +54,9 @@ self.addEventListener('fetch', (e) => {
           const tileLayer = tile.layers['fishing']
           const features = []
           
-          const INTERVAL_DAY = 10
+          const INTERVAL_DAY = 30
           const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
-          const ABS_END_DAY = new Date('2020-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
-          const ABS_INTERVAL_DAY = ABS_END_DAY - ABS_START_DAY
+          const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
           for (let i = 0; i < tileLayer.length; i++) {
             const feature = tileLayer.feature(i).toGeoJSON(x,y,z)
@@ -71,7 +70,7 @@ self.addEventListener('fetch', (e) => {
             const valuesWithinInterval = {}
             // go from abs start to abs end
             for (let d = ABS_START_DAY; d < ABS_END_DAY; d++) {
-              // const total = values[d]
+            // for (let d = ABS_START_DAY; d < ABS_END_DAY; d+= 10) {
               // compute total at d aggregating all values within interval
               let total = 0
               for (let dd = d; dd < Math.min(d + INTERVAL_DAY, ABS_END_DAY); dd++) {
@@ -80,10 +79,10 @@ self.addEventListener('fetch', (e) => {
                 }
               }
               if (total > 0) {
-                valuesWithinInterval[d] = total
+                // valuesWithinInterval[d] = total
+                valuesWithinInterval[d] = 3
               }
             }
-            // console.log(valuesWithinInterval)
             feature.properties = valuesWithinInterval
             features.push(feature)
           }

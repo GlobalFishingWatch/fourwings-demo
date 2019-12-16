@@ -43,7 +43,7 @@ const defaultMapStyle = {
         source: 'heatmap-playback',
         "source-layer": 'fishing',
         "paint": {
-          "circle-radius": 3,
+          "circle-radius": 0,
           "circle-opacity": 1,
           "circle-color": "hsl(100, 100%, 50%)",
           "circle-stroke-width": 0,
@@ -94,7 +94,9 @@ const Map = () => {
     const startTimestampMs = new Date(dates.start).getTime()
     const startTimestampDays = Math.round(startTimestampMs / 1000 / 60 / 60 / 24)
     const s = { ...defaultMapStyle }
-    s.layers[2].filter = ['has', startTimestampDays.toString()]
+    // s.layers[2].filter = ['has', startTimestampDays.toString()]
+    s.layers[2].paint['circle-radius'] = ["to-number", ['get', startTimestampDays.toString()]]
+    // s.layers[2].paint['circle-radius'] = ["case", ["has", startTimestampDays.toString()], 3, 0]
     return s
   }, [dates])
 
