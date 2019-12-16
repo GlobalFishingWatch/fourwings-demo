@@ -34,9 +34,9 @@ export function register(config) {
     window.addEventListener('load', () => {
       // can't be called 'service-worker.js', CRA's default, because it gets replaced
       // by the no-op sw when in dev
-      const swUrl = `${process.env.PUBLIC_URL}/serviceworker.js`;
+      const swUrl = `${process.env.PUBLIC_URL}/sw.js`;
 
-      console.log(swUrl, process.env.PUBLIC_URL)
+      // console.log(swUrl, process.env.PUBLIC_URL)
       if (isLocalhost) {
         // This is running on localhost. Let's check if a service worker still exists or not.
         checkValidServiceWorker(swUrl, config);

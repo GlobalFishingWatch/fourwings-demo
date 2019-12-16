@@ -19,7 +19,7 @@ const defaultMapStyle = {
       // tiles: ['http://34.69.224.29/v1/fishing_hour/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}?filters=flag==\'ESP\' and timestamp > \'2019-12-01T00:00:00\''],
-      tiles: ['http://dummy/{z}/{x}/{y}'],
+      tiles: ['http://heatmap/{z}/{x}/{y}'],
     },
   },
   "layers": [
@@ -50,7 +50,7 @@ const defaultMapStyle = {
           "circle-stroke-color": "hsl(0, 0%, 0%)"
         },
         // filter: ['has', new Date('2019-01-02T00:00:00+00:00').toISOString()]
-        filter: ['has', '18136']
+        // filter: ['has', '18136']
       }
   ]
 }
@@ -91,14 +91,13 @@ const Map = () => {
     zoom: 3.5
   })
   const style = useMemo(() => {
-    console.log(dates)
     const startTimestampMs = new Date(dates.start).getTime()
     const startTimestampDays = Math.round(startTimestampMs / 1000 / 60 / 60 / 24)
     const s = { ...defaultMapStyle }
-    s.layers[2].filter = ['has', startTimestampDays.toString()]
+    // s.layers[2].filter = ['has', startTimestampDays.toString()]
     return s
   }, [dates])
-  console.log(style)
+
 
   return (serviceWorkerReady) && (<>
     <ReactMapGL
@@ -110,17 +109,17 @@ const Map = () => {
       }}
     />
     <Timebar
-        enablePlayback
-        start={dates.start}
-        end={dates.end}
-        absoluteStart={'2019-01-01T00:00:00.000Z'}
-        absoluteEnd={'2020-01-01T00:00:00.000Z'}
-        onChange={(start, end) => { setDates({
-          start,
-          end
-        }) }}
-      />
-    </>)
+      enablePlayback
+      start={dates.start}
+      end={dates.end}
+      absoluteStart={'2019-01-01T00:00:00.000Z'}
+      absoluteEnd={'2020-01-01T00:00:00.000Z'}
+      onChange={(start, end) => { setDates({
+        start,
+        end
+      }) }}
+    />
+  </>)
 }
 
 
