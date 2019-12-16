@@ -36,12 +36,34 @@ self.addEventListener('activate', event => {
 //   })
 // )
 
-self.importScripts('readTile.js');
+// self.importScripts('readTile.js');
 
 self.addEventListener('fetch', (e) => {
-  console.log('fetch intercepted:', e.request.url)
-  if (e.request.url.match(/pbf$/) !== null) {
-    e.respondWith(self.readTile(e.request));
+  console.log(/dummy/.test(e.request.url))
+  // if (e.request.url.match(/pbf$/) !== null) {
+    if (/dummy/.test(e.request.url) === true) {
+      console.log('fetch intercepted:', e.request.url)
+
+      const url = e.request.url.replace('http://dummy', 'http://34.69.224.29/v1/fishing/heatmap')
+      const p = fetch(url)
+
+      const p2 = p.then(f => {
+        console.log(f)
+        return f.arrayBuffer().then(function(buffer) {
+          console.log('plp')
+          console.log(buffer)
+          // do something with buffer
+          return new Response(buffer, {
+            status: f.status,
+            statusText: f.statusText,
+            headers: f.headers
+          })
+          
+        });
+        
+      })
+
+      e.respondWith(p2)
   }
 })
 

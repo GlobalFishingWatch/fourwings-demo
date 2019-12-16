@@ -15,12 +15,14 @@ async function readTile(request) {
   // const newResponse = response.clone()
 
   //console.log(response.body)
-  // response.arrayBuffer().then(function(buffer) {
-  //   // do something with buffer
-  //   // console.log(buffer)
-  // });
+  response.arrayBuffer().then(function(buffer) {
+    // do something with buffer
+    console.log(buffer)
+  });
 
-  const buffer = await response.arrayBuffer()
+  // const buffer = await response.arrayBuffer()
+
+  console.log(response.headers)
   // console.log(buffer)
   const newResponse = new Response(buffer, {
     status: response.status,
