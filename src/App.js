@@ -1,8 +1,8 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import ReactMapGL from 'react-map-gl';
 import Timebar from '@globalfishingwatch/map-components/components/timebar'
 
-const mapStyle ={
+const defaultMapStyle = {
   "version": 8,
   "name": "Blank",
   "center": [0, 0],
@@ -18,8 +18,8 @@ const mapStyle ={
       type: "vector",
       // tiles: ['http://34.69.224.29/v1/fishing_hour/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}'],
-      tiles: ['http://dummy/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}?filters=flag==\'ESP\' and timestamp > \'2019-12-01T00:00:00\''],
+      tiles: ['http://dummy/{z}/{x}/{y}'],
     },
   },
   "layers": [
@@ -49,8 +49,8 @@ const mapStyle ={
           "circle-stroke-width": 0,
           "circle-stroke-color": "hsl(0, 0%, 0%)"
         },
-        // filter: ['has', new Date('2019-01-01T00:00:00+00:00').toISOString()]
-        // filter: ['has', new Date('2019-01-01T00:00:00+00:00').toISOString()]
+        // filter: ['has', new Date('2019-01-02T00:00:00+00:00').toISOString()]
+        filter: ['has', '18136']
       }
   ]
 }
@@ -73,30 +73,41 @@ const mapStyle ={
 // }
 
 const Map = () => {
-  const [dates, setDates] = useState({ start: '2019-01-01T00:00:00.000Z', end: '2019-02-01T00:00:00.000Z' });
-  const [serviceWorkerReady, setServiceWorkerReady] = useState(false)
+  // wait for SW to be ready, otherwise there's a race condition
+  // between SW install and map first render (=first tiles fetches don't get intercepted)
   useEffect(() => {
     navigator.serviceWorker.ready.then(() => {
       console.log('From app: service worker is ready')
       setServiceWorkerReady(true)
     })
   }, [])
+  const [dates, setDates] = useState({ start: '2019-01-01T00:00:00.000Z', end: '2019-02-01T00:00:00.000Z' });
+  const [serviceWorkerReady, setServiceWorkerReady] = useState(false)
   const [viewport, setViewport] = useState({
-    width: 800,
-    height: 600,
+    width: '100%',
+    height: 1000,
     latitude: -50,
     longitude: -60,
     zoom: 3.5
   })
-  console.log(viewport)
+  const style = useMemo(() => {
+    console.log(dates)
+    const startTimestampMs = new Date(dates.start).getTime()
+    const startTimestampDays = Math.round(startTimestampMs / 1000 / 60 / 60 / 24)
+    const s = { ...defaultMapStyle }
+    s.layers[2].filter = ['has', startTimestampDays.toString()]
+    return s
+  }, [dates])
+  console.log(style)
 
-  // wait for SW to be ready, otherwise there's a race condition
-  // between SW install and map first render (=first tiles fetches don't get intercepted)
   return (serviceWorkerReady) && (<>
     <ReactMapGL
       {...viewport}
       onViewportChange={(viewport) => setViewport(viewport)}
-      mapStyle={mapStyle}
+      mapStyle={style}
+      onClick={(e) => {
+        console.log(e)
+      }}
     />
     <Timebar
         enablePlayback
@@ -108,10 +119,6 @@ const Map = () => {
           start,
           end
         }) }}
-        // bookmarkStart={bookmarkStart}
-        // bookmarkEnd={bookmarkEnd}
-        // onMouseMove={this.onMouseMove}
-        // onBookmarkChange={this.updateBookmark}
       />
     </>)
 }

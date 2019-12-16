@@ -48,10 +48,10 @@ self.addEventListener('fetch', (e) => {
       const p = fetch(url)
 
       const p2 = p.then(f => {
-        console.log(f)
+        // console.log(f)
         return f.arrayBuffer().then(function(buffer) {
-          console.log('plp')
-          console.log(buffer)
+          // console.log('plp')
+          // console.log(buffer)
           // do something with buffer
           return new Response(buffer, {
             status: f.status,
