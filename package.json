@@ -12,6 +12,7 @@
     "react-dom": "^16.8.6",
     "react-map-gl": "^5.0.7",
     "react-scripts": "3.0.1",
+    "use-throttle": "^0.0.3",
     "vt-pbf": "^3.1.1"
   },
   "scripts": {

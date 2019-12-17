@@ -44,17 +44,22 @@ self.addEventListener('fetch', (e) => {
   // if (e.request.url.match(/pbf$/) !== null) {
     if (/heatmap/.test(e.request.url) === true) {
       const originalUrl = e.request.url
-      const url = originalUrl.replace('http://heatmap', 'http://34.69.224.29/v1/fishing/heatmap')
+
+      // const TILESET = 'fishing_64cells'
+      const TILESET = 'fishing'
+
+      const url = originalUrl.replace('http://heatmap', `https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1/${TILESET}/tile/heatmap`)
       const [z, x, y] = originalUrl.match(/heatmap\/(\d+)\/(\d+)\/(\d+)/).slice(1,4).map(d => parseInt(d))
       const p = fetch(url)
 
       const p2 = p.then(f => {
         return f.arrayBuffer().then(function(buffer) {
           var tile = new VectorTile(new Pbf(buffer))
-          const tileLayer = tile.layers['fishing']
+          // console.log(Object.keys(tile.layers))
+          const tileLayer = tile.layers[TILESET]
           const features = []
           
-          const INTERVAL_DAY = 30
+          const INTERVAL_DAY = 60
           const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
           const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
@@ -65,6 +70,7 @@ self.addEventListener('fetch', (e) => {
             // console.log(feature.toGeoJSON(x,y,z))
 
             const values = feature.properties
+
             // console.log(values)
             delete values.cell
             const valuesWithinInterval = {}
@@ -75,12 +81,14 @@ self.addEventListener('fetch', (e) => {
               let total = 0
               for (let dd = d; dd < Math.min(d + INTERVAL_DAY, ABS_END_DAY); dd++) {
                 if (values[dd] !== undefined) {
-                  total += values[dd]
+                  // total += values[dd]
+                  // total += 1
+                  total = 3
                 }
               }
               if (total > 0) {
-                // valuesWithinInterval[d] = total
-                valuesWithinInterval[d] = 3
+                valuesWithinInterval[d] = total
+                // valuesWithinInterval[d] = 3
               }
             }
             feature.properties = valuesWithinInterval

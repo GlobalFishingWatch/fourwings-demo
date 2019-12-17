@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import ReactMapGL from 'react-map-gl';
 import Timebar from '@globalfishingwatch/map-components/components/timebar'
+import { useThrottle } from 'use-throttle';
 
 const defaultMapStyle = {
   "version": 8,
@@ -85,7 +86,7 @@ const Map = () => {
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false)
   const [viewport, setViewport] = useState({
     width: '100%',
-    height: 1000,
+    height: 500,
     latitude: -50,
     longitude: -60,
     zoom: 3.5
@@ -100,12 +101,14 @@ const Map = () => {
     return s
   }, [dates])
 
+  // make throttling dealy higher when data gets more complex?
+  const throttledStyle = useThrottle(style, 50)
 
   return (serviceWorkerReady) && (<>
     <ReactMapGL
       {...viewport}
       onViewportChange={(viewport) => setViewport(viewport)}
-      mapStyle={style}
+      mapStyle={throttledStyle}
       onClick={(e) => {
         console.log(e)
       }}
@@ -116,10 +119,12 @@ const Map = () => {
       end={dates.end}
       absoluteStart={'2019-01-01T00:00:00.000Z'}
       absoluteEnd={'2020-01-01T00:00:00.000Z'}
-      onChange={(start, end) => { setDates({
-        start,
-        end
-      }) }}
+      onChange={(start, end) => { 
+        setDates({
+          start,
+          end
+        })
+      }}
     />
   </>)
 }
