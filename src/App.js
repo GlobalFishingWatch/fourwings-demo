@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import ReactMapGL from 'react-map-gl';
 import Timebar from '@globalfishingwatch/map-components/components/timebar'
-import { useThrottle } from 'use-throttle';
+// import { useThrottle } from 'use-throttle';
 
 const baseIntensity = .02
 const baseRadius = 35
@@ -13,22 +13,11 @@ const heatmapColor = [
   ["linear"],
   ["heatmap-density"],
   0,"rgba(0, 0, 255, 0)",
-  0.1,"#0C276C",
+  0.1,"#0c276c",
   0.25,"#3B9088",
   0.4,"#EEFF00",
   1,"#ffffff"
 ]
-
-// const squareColor = [
-//   "interpolate",
-//   ["linear"],
-//   ["heatmap-density"],
-//   0,"rgba(0, 0, 255, 0)",
-//   0.1,"#0C276C",
-//   0.25,"#3B9088",
-//   0.4,"#EEFF00",
-//   1,"#ffffff"
-// ]
 
 
 
@@ -60,7 +49,7 @@ const defaultMapStyle = {
       {
         "id": "background",
         "type": "background",
-        "paint": {"background-color": "#0A1738"}
+        "paint": {"background-color": "#0a1738"}
       },
       {
         "id": "heatmap-playback-square",
@@ -127,10 +116,10 @@ const defaultMapStyle = {
         source: 'heatmap-playback-point',
         "source-layer": 'fishing',
         "layout": {
-          "visibility": "visible"
+          "visibility": "none"
         },
         "paint": {
-          "circle-radius": 0,
+          "circle-radius": 2,
           "circle-opacity": 1,
           "circle-color": "hsla(0, 0%, 0%, 0)",
           "circle-stroke-width": .5,
@@ -145,11 +134,24 @@ const defaultMapStyle = {
         "source": "countries",
         "layout": {},
         "paint": {
-          "fill-outline-color": "white",
+          "fill-outline-color": "#0a1738",
           "fill-opacity": 0.99, // forces layer to render in translucent pass - https://github.com/mapbox/mapbox-gl-js/issues/5831
-          "fill-color": "#0A1738"
+          "fill-color": "#374a6d"
         }
-      }
+      },
+      {
+        "id": "heatmap-playback-extruded-square",
+        "type": "fill-extrusion",
+        "source": "heatmap-playback-square",
+        "source-layer": 'fishing',
+        "layout": {
+          "visibility": "none"
+        },
+        "paint": {
+            "fill-extrusion-color": "hsl(0, 97%, 56%)",
+            "fill-extrusion-height": 100000
+        }
+      },
   ]
 }
 
@@ -181,13 +183,13 @@ const Map = () => {
   }, [])
 
   const [dates, setDates] = useState({ start: '2019-01-01T00:00:00.000Z', end: '2019-04-01T00:00:00.000Z' });
-  const [squares, setSquares] = useState(false)
+  const [mode, setMode] = useState('heatmap')
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false)
   const [viewport, setViewport] = useState({
     width: '100%',
-    height: 550,
-    latitude: 40,
-    longitude: 0,
+    height: 950,
+    latitude: 0,
+    longitude: 160,
     zoom: 3.5
   })
   const style = useMemo(() => {
@@ -197,7 +199,9 @@ const Map = () => {
 
     const SQUARE_INDEX = 1
     const HEATMAP_INDEX = 2
-    const POINT_INDEX = 3
+    // const POINT_INDEX = 3
+    // const COUNTRIES_INDEX = 4
+    const EXTRUDED_INDEX = 5
 
     
 
@@ -205,31 +209,58 @@ const Map = () => {
     // s.layers[POINT_INDEX].paint['circle-radius'] = ["to-number", ['get', (startTimestampDays - OFFSET).toString()]]
     // s.layers[POINT_INDEX].paint['circle-radius'] = ["to-number", ['get', startTimestampDays.toString()]]
     // s.layers[POINT_INDEX].paint['circle-radius'] = ["case", ["has", startTimestampDays.toString()], 3, 0]
-    
-    if (!squares) {
+    console.log(mode)
+    if (mode === 'heatmap') {
       s.layers[HEATMAP_INDEX].paint['heatmap-weight'] = ["to-number", ['get', (startTimestampDays - OFFSET).toString()]]
       // s.layers[HEATMAP_INDEX].paint['heatmap-weight'] = ["to-number", ['get', startTimestampDays.toString()]]
       s.layers[SQUARE_INDEX].paint['fill-color'] = "#0A1738"
-    } else {
+    } else if (mode === 'square') {
       s.layers[SQUARE_INDEX].paint['fill-color'] = [
         "interpolate",
         ["linear"],
         ["to-number", ['get', (startTimestampDays - OFFSET).toString()]],
-        0,"rgba(0, 0, 255, 0)",
-        1,"#0C276C",
+        0,"rgba(0, 0, 0, 0)",
+        1,"#0c276c",
         15,"#3B9088",
         30,"#EEFF00",
-        50,"#ffffff"
+        40,"#ffffff"
       ]
     }
 
-    // s.layers[SQUARE_INDEX].layout.visibility = (squares) ? 'visible' : 'none'
-    s.layers[HEATMAP_INDEX].layout.visibility = (!squares) ? 'visible' : 'none'
+    if (mode === 'extruded_square') {
+      s.layers[EXTRUDED_INDEX].paint['fill-extrusion-color'] = [
+        "interpolate",
+        ["linear"],
+        ["to-number", ['get', (startTimestampDays - OFFSET).toString()]],
+        0,"rgba(0, 0, 0, 0)",
+        1,"#0c276c",
+        15,"#3B9088",
+        30,"#EEFF00",
+        40,"#ffffff"
+      ]
+      s.layers[EXTRUDED_INDEX].paint['fill-extrusion-height'] = [
+        "interpolate",
+        ["linear"],
+        ["to-number", ['get', (startTimestampDays - OFFSET).toString()]],
+        0,0,
+        1,10000,
+        15,150000,
+        30,300000,
+        40,400000
+      ]
+      s.layers[EXTRUDED_INDEX].layout.visibility = 'visible'
+    } else {
+      s.layers[EXTRUDED_INDEX].layout.visibility = 'none'
+    }
+
+    s.layers[HEATMAP_INDEX].layout.visibility = (mode === 'heatmap') ? 'visible' : 'none'
+    s.layers[SQUARE_INDEX].layout.visibility = (mode === 'square') ? 'visible' : 'none'
+    // s.layers[EXTRUDED_INDEX].layout.visibility = (mode === 'square_extruded') ? 'visible' : 'none'
     return s
-  }, [dates, squares])
+  }, [dates, mode])
 
   // make throttling dealy higher when data gets more complex?
-  // const throttledStyle = useThrottle(style, 17)
+  // const throttledStyle = useThrottle(style, 100)
   return (serviceWorkerReady) && (<>
     <ReactMapGL
       {...viewport}
@@ -238,6 +269,7 @@ const Map = () => {
       onClick={(e) => {
         console.log(e)
       }}
+      mapOptions={{ hash: true, showTileBoundaries: true }}
     />
     <Timebar
       enablePlayback
@@ -253,7 +285,11 @@ const Map = () => {
       }}
     />
     <div style={{ position: 'absolute', background: '#fff', top: 0 }}>
-      <input type="checkbox" checked={squares} onChange={() => setSquares(!squares)} />squares
+      <select onChange={(event) => setMode(event.target.value)}>
+        <option value="heatmap">heatmap</option>
+        <option value="square">square</option>
+        <option value="extruded_square">extruded</option>
+      </select>
     </div>
   </>)
 }

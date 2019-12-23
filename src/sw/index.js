@@ -86,9 +86,9 @@ self.addEventListener('fetch', (e) => {
     if (/heatmap/.test(e.request.url) === true) {
       const originalUrl = e.request.url
 
-      // const TILESET = 'fishing_64cells'
-      const TILESET = 'fishing'
-      const TILESET_NUM_CELLS = 100
+      const TILESET = 'fishing_64cells'
+      // const TILESET = 'fishing'
+      const TILESET_NUM_CELLS = 64
 
       const url = new URL(originalUrl)
       const geomType = url.searchParams.get('geomType')
@@ -108,7 +108,7 @@ self.addEventListener('fetch', (e) => {
           const features = []
           
           const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
-          const INTERVAL_DAY = 60
+          const INTERVAL_DAY = 90
           const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
           const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
@@ -119,9 +119,9 @@ self.addEventListener('fetch', (e) => {
             const cell = values.cell
             const row = Math.floor(cell / TILESET_NUM_CELLS)
             // Skip every col and row, dividing num features by 4
-            if (geomType !== 'square' && (cell % 2 !== 0 || row % 2 !== 0)) {
-              continue
-            }
+            // if (geomType !== 'square' && (cell % 2 !== 0 || row % 2 !== 0)) {
+            //   continue
+            // }
 
             if (geomType === 'square') {
               feature.geometry = getSquareGeom(tileBBox, values.cell, TILESET_NUM_CELLS)
