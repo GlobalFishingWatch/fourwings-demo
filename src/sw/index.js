@@ -116,7 +116,7 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
     const tileLayer = tile.layers[sourceLayer]
     const features = []
     
-    const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
+    const QUANTIZE_OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
     const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
     const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
@@ -147,24 +147,34 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
 
 
       delete values.cell
-      const valuesWithinInterval = []
-      // go from abs start to abs end
-      for (let d = ABS_START_DAY; d < ABS_END_DAY; d++) {
-        // compute total at d aggregating all values within interval
-        let total = 0
-        for (let dd = d; dd < Math.min(d + delta, ABS_END_DAY); dd++) {
-          if (values[dd] !== undefined) {
-            // total += values[dd]
-            total += 1
-            // total = 3
-          }
+
+      const finalValues = []
+      let currentValue = 0
+      let j = 0
+      for (let d = ABS_START_DAY; d < ABS_END_DAY + delta; d++) {
+        const tipValue = (values[d]) ? 1 : 0
+        currentValue += tipValue
+
+        if (j < delta) {
+          j++
+          continue
         }
-        if (total > 0) {
-          valuesWithinInterval[d - OFFSET] = total
-          // valuesWithinInterval[d] = 3
+
+        const tailValueIndex = d - delta
+        let tailValue = (tailValueIndex > 0) ? values[tailValueIndex] : 0
+        if (tailValue === undefined) {
+          tailValue = 0
+        } else {
+          tailValue = 1
         }
+        currentValue -= tailValue
+
+        if (currentValue > 0) {
+          finalValues[d - delta - QUANTIZE_OFFSET] = currentValue
+        }
+        j++
       }
-      feature.properties = valuesWithinInterval
+      feature.properties = finalValues
 
       features.push(feature)
     }
@@ -201,7 +211,7 @@ self.addEventListener('fetch', (e) => {
 
       const TILESET = 'fishing_64cells'
       // const TILESET = 'fishing'
-      console.log(originalUrl)
+
       const url = new URL(originalUrl)
       const geomType = url.searchParams.get('geomType')
       const delta = parseInt(url.searchParams.get('delta') || '10')

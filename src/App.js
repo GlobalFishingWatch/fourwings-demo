@@ -211,9 +211,10 @@ const Map = () => {
   const style = useMemo(() => {
     const startTimestampMs = new Date(dates.start).getTime()
     const endTimestampMs = new Date(dates.end).getTime()
-    const startTimestampDays = Math.round(startTimestampMs / 1000 / 60 / 60 / 24)
-    const endTimestampDays = Math.round(endTimestampMs / 1000 / 60 / 60 / 24)
+    const startTimestampDays = Math.floor(startTimestampMs / 1000 / 60 / 60 / 24)
+    const endTimestampDays = Math.floor(endTimestampMs / 1000 / 60 / 60 / 24)
     const daysDelta = endTimestampDays - startTimestampDays
+    console.log(daysDelta)
 
     const s = { ...defaultMapStyle }
 
@@ -242,7 +243,7 @@ const Map = () => {
     // s.layers[POINT_INDEX].paint['circle-radius'] = ["to-number", ['get', (startTimestampDays - OFFSET).toString()]]
     // s.layers[POINT_INDEX].paint['circle-radius'] = ["to-number", ['get', startTimestampDays.toString()]]
     // s.layers[POINT_INDEX].paint['circle-radius'] = ["case", ["has", startTimestampDays.toString()], 3, 0]
-    console.log(mode)
+
     if (mode === 'heatmap') {
       s.layers[HEATMAP_INDEX].paint['heatmap-weight'] = ["to-number", ['get', (startTimestampDays - OFFSET).toString()]]
       // s.layers[HEATMAP_INDEX].paint['heatmap-weight'] = ["to-number", ['get', startTimestampDays.toString()]]
