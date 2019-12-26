@@ -31,7 +31,11 @@ const defaultMapStyle = {
   "sources": {
     "countries": {
       "type": "geojson",
-      "data": 'https://gist.githubusercontent.com/nerik/512ff38b8b5f254c89b3e2541af5157e/raw/22f0555c8c5896874fe40111affa4290f2374ebb/countries.json'
+      "data": 'https://gist.githubusercontent.com/nerik/512ff38b8b5f254c89b3e2541af5157e/raw/22f0555c8c5896874fe40111affa4290f2374ebb/countries.json',
+    },
+    "composite": {
+      "url": "mapbox://satellitestudio-nerik.dy3yrxjz",
+      "type": "vector",
     },
     "heatmap-playback-point": {
       type: "vector",
@@ -128,16 +132,28 @@ const defaultMapStyle = {
         // filter: ['has', new Date('2019-01-02T00:00:00+00:00').toISOString()]
         // filter: ['has', '18136']
       },
+      // {
+      //   "id": "countries",
+      //   "type": "fill",
+      //   "source": "countries",
+      //   "layout": {},
+      //   "paint": {
+      //     "fill-outline-color": "#0a1738",
+      //     "fill-opacity": 0.99, // forces layer to render in translucent pass - https://github.com/mapbox/mapbox-gl-js/issues/5831
+      //     "fill-color": "#374a6d"
+      //   }
+      // },
       {
-        "id": "countries",
-        "type": "fill",
-        "source": "countries",
-        "layout": {},
-        "paint": {
-          "fill-outline-color": "#0a1738",
-          "fill-opacity": 0.99, // forces layer to render in translucent pass - https://github.com/mapbox/mapbox-gl-js/issues/5831
-          "fill-color": "#374a6d"
-        }
+          "id": "gshhs-f-l1-full-res-shoreline-2eohvk",
+          "type": "fill",
+          "source": "composite",
+          "source-layer": "GSHHS_f_L1_full_res_shoreline-2eohvk",
+          "layout": {},
+          "paint": {
+            "fill-outline-color": "#0a1738",
+            "fill-opacity": 0.99, // forces layer to render in translucent pass - https://github.com/mapbox/mapbox-gl-js/issues/5831
+            "fill-color": "#374a6d"
+          }
       },
       {
         "id": "heatmap-playback-extruded-square",
@@ -190,7 +206,7 @@ const Map = () => {
     height: 950,
     latitude: 0,
     longitude: 160,
-    zoom: 3.5
+    zoom: 4
   })
   const style = useMemo(() => {
     const startTimestampMs = new Date(dates.start).getTime()
@@ -270,6 +286,7 @@ const Map = () => {
         console.log(e)
       }}
       mapOptions={{ hash: true, showTileBoundaries: true }}
+      mapboxApiAccessToken='pk.eyJ1Ijoic2F0ZWxsaXRlc3R1ZGlvLW5lcmlrIiwiYSI6ImNrNGluM2E5bTAxcjEza21sYXdoeGRxNWcifQ.YxNL-IWYAwp5wTs58BC_iA'
     />
     <Timebar
       enablePlayback
