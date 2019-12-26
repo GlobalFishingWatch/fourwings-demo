@@ -210,8 +210,25 @@ const Map = () => {
   })
   const style = useMemo(() => {
     const startTimestampMs = new Date(dates.start).getTime()
+    const endTimestampMs = new Date(dates.end).getTime()
     const startTimestampDays = Math.round(startTimestampMs / 1000 / 60 / 60 / 24)
+    const endTimestampDays = Math.round(endTimestampMs / 1000 / 60 / 60 / 24)
+    const daysDelta = endTimestampDays - startTimestampDays
+
     const s = { ...defaultMapStyle }
+
+    const sources = s.sources
+    Object.keys(sources).forEach(sourceKey => {
+      const sourceUrlRaw = sources[sourceKey].tiles && sources[sourceKey].tiles[0]
+      if (/heatmap/.test(sourceUrlRaw) === true) {
+        const sourceUrl = new URL(sourceUrlRaw)
+        sourceUrl.searchParams.set('delta', daysDelta)
+        const finalUrl = sourceUrl.toString()
+        sources[sourceKey].tiles = [decodeURI(finalUrl)]
+      }
+    })
+
+
 
     const SQUARE_INDEX = 1
     const HEATMAP_INDEX = 2
@@ -272,6 +289,7 @@ const Map = () => {
     s.layers[HEATMAP_INDEX].layout.visibility = (mode === 'heatmap') ? 'visible' : 'none'
     s.layers[SQUARE_INDEX].layout.visibility = (mode === 'square') ? 'visible' : 'none'
     // s.layers[EXTRUDED_INDEX].layout.visibility = (mode === 'square_extruded') ? 'visible' : 'none'
+    
     return s
   }, [dates, mode])
 

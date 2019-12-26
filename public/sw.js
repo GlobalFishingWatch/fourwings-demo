@@ -3507,7 +3507,7 @@
 
   const perfs = []; 
 
-  const aggregate = (f, { sourceLayer, geomType, numCells, x, y, z }) => {
+  const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
     const tileBBox = tilebelt.tileToBBOX([x,y,z]);
     return f.arrayBuffer().then(buffer => {
 
@@ -3517,7 +3517,6 @@
       const features = [];
       
       const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24;
-      const INTERVAL_DAY = 30;
       const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24;
       const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24;
 
@@ -3553,7 +3552,7 @@
         for (let d = ABS_START_DAY; d < ABS_END_DAY; d++) {
           // compute total at d aggregating all values within interval
           let total = 0;
-          for (let dd = d; dd < Math.min(d + INTERVAL_DAY, ABS_END_DAY); dd++) {
+          for (let dd = d; dd < Math.min(d + delta, ABS_END_DAY); dd++) {
             if (values[dd] !== undefined) {
               // total += values[dd]
               total += 1;
@@ -3602,8 +3601,10 @@
 
         const TILESET = 'fishing_64cells';
         // const TILESET = 'fishing'
-        
+        console.log(originalUrl);
         const url = new URL(originalUrl);
+        const geomType = url.searchParams.get('geomType');
+        const delta = parseInt(url.searchParams.get('delta') || '10');
 
         const [z, x, y] = originalUrl.match(/heatmap\/(\d+)\/(\d+)\/(\d+)/).slice(1,4).map(d => parseInt(d));
 
@@ -3620,8 +3621,7 @@
 
 
             const TILESET_NUM_CELLS = 64;
-            const geomType = url.searchParams.get('geomType');
-            const aggregateParams = { sourceLayer: TILESET, geomType, numCells: TILESET_NUM_CELLS, x, y, z };
+            const aggregateParams = { sourceLayer: TILESET, geomType, delta, numCells: TILESET_NUM_CELLS, x, y, z };
 
             // Cache hit - return response
             if (cacheResponse) {
