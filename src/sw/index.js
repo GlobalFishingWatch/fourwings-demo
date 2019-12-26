@@ -41,16 +41,40 @@ self.addEventListener('activate', event => {
 
 // self.importScripts('readTile.js');
 
-const getSquareGeom = (tileBBox, cell, numCells) => {
+const getCellCoords = (tileBBox, cell, numCells) => {
   const col = cell % numCells
   const row = Math.floor(cell / numCells)
   const [minX, minY, maxX, maxY] = tileBBox
   const width = maxX - minX
   const height = maxY - minY
+  return {
+    col,
+    row,
+    width,
+    height
+  }
+}
+
+const getPointGeom = (tileBBox, cell, numCells) => {
+  const [minX, minY] = tileBBox
+  const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells)
+
+  const pointMinX = minX + (col/numCells) * width
+  const pointMinY = minY+ (row/numCells) * height
+
+  return {
+    "type": "Point",
+    "coordinates": [pointMinX, pointMinY]
+  }
+}
+
+const getSquareGeom = (tileBBox, cell, numCells) => {
+  const [minX, minY] = tileBBox
+  const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells)
 
   const squareMinX = minX + (col/numCells) * width
+  const squareMinY = minY + (row/numCells) * height
   const squareMaxX = minX + ((col+1)/numCells) * width
-  const squareMinY = minY+ (row/numCells) * height
   const squareMaxY = minY + ((row+1)/numCells) * height
   return {
     "type": "Polygon",
@@ -81,23 +105,34 @@ const getSquareGeom = (tileBBox, cell, numCells) => {
   }
 }
 
+const perfs = [] 
+
 const aggregate = (f, { sourceLayer, geomType, numCells, x, y, z }) => {
   const tileBBox = tilebelt.tileToBBOX([x,y,z])
   return f.arrayBuffer().then(buffer => {
+
     var tile = new VectorTile(new Pbf(buffer))
 
     const tileLayer = tile.layers[sourceLayer]
     const features = []
     
     const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
-    const INTERVAL_DAY = 90
+    const INTERVAL_DAY = 30
     const ABS_START_DAY = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
     const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
+
+    const t = performance.now()
     for (let i = 0; i < tileLayer.length; i++) {
-      const feature = tileLayer.feature(i).toGeoJSON(x,y,z)
+      const rawFeature = tileLayer.feature(i)
+      // console.log(rawFeature.properties)
+      // const feature = rawFeature.toGeoJSON(x,y,z)
+      const feature = {
+        "type": "Feature",
+        "properties": {},
+      }
       
-      const values = feature.properties
+      const values = rawFeature.properties
       const cell = values.cell
       const row = Math.floor(cell / numCells)
       // Skip every col and row, dividing num features by 4
@@ -106,16 +141,16 @@ const aggregate = (f, { sourceLayer, geomType, numCells, x, y, z }) => {
       }
 
       if (geomType === 'square') {
-        feature.geometry = getSquareGeom(tileBBox, values.cell, numCells)
+        feature.geometry = getSquareGeom(tileBBox, cell, numCells)
+      } else {
+        feature.geometry = getPointGeom(tileBBox, cell, numCells)
       }
 
 
-      // console.log(values)
       delete values.cell
       const valuesWithinInterval = []
       // go from abs start to abs end
       for (let d = ABS_START_DAY; d < ABS_END_DAY; d++) {
-      // for (let d = ABS_START_DAY; d < ABS_END_DAY; d+= 10) {
         // compute total at d aggregating all values within interval
         let total = 0
         for (let dd = d; dd < Math.min(d + INTERVAL_DAY, ABS_END_DAY); dd++) {
@@ -134,6 +169,11 @@ const aggregate = (f, { sourceLayer, geomType, numCells, x, y, z }) => {
 
       features.push(feature)
     }
+
+    perfs.push(performance.now() - t)
+    if (perfs.length > 5) {
+      console.log('avg perf:', perfs.reduce((prev, current) => prev + current, 0) / perfs.length)
+    }
     const geoJSON = {
       "type": "FeatureCollection",
       features
@@ -142,6 +182,8 @@ const aggregate = (f, { sourceLayer, geomType, numCells, x, y, z }) => {
     const tileindex = geojsonVt(geoJSON)
     const newTile = tileindex.getTile(z, x, y)
     const newBuff = vtpbf.fromGeojsonVt({ 'fishing': newTile })
+
+
 
     return new Response(newBuff, {
       status: f.status,
