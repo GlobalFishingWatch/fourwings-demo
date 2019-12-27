@@ -110,6 +110,7 @@ const perfs = []
 const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
   const tileBBox = tilebelt.tileToBBOX([x,y,z])
   return f.arrayBuffer().then(buffer => {
+    const t = performance.now()
 
     var tile = new VectorTile(new Pbf(buffer))
 
@@ -121,7 +122,7 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
     const ABS_END_DAY = new Date('2019-12-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
 
-    const t = performance.now()
+
     for (let i = 0; i < tileLayer.length; i++) {
       const rawFeature = tileLayer.feature(i)
       // console.log(rawFeature.properties)
@@ -179,10 +180,8 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
       features.push(feature)
     }
 
-    perfs.push(performance.now() - t)
-    if (perfs.length > 5) {
-      console.log('avg perf:', perfs.reduce((prev, current) => prev + current, 0) / perfs.length)
-    }
+
+
     const geoJSON = {
       "type": "FeatureCollection",
       features
@@ -192,6 +191,10 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
     const newTile = tileindex.getTile(z, x, y)
     const newBuff = vtpbf.fromGeojsonVt({ 'fishing': newTile })
 
+    perfs.push(performance.now() - t)
+    if (perfs.length > 5) {
+      console.log('avg perf:', perfs.reduce((prev, current) => prev + current, 0) / perfs.length)
+    }
 
 
     return new Response(newBuff, {
@@ -205,22 +208,20 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
 }
 
 self.addEventListener('fetch', (e) => {
-  // if (e.request.url.match(/pbf$/) !== null) {
-    if (/heatmap/.test(e.request.url) === true) {
+    if (/__heatmap__/.test(e.request.url) === true) {
+
       const originalUrl = e.request.url
 
-      const TILESET = 'fishing_64cells'
-      // const TILESET = 'fishing'
 
       const url = new URL(originalUrl)
       const geomType = url.searchParams.get('geomType')
       const delta = parseInt(url.searchParams.get('delta') || '10')
+      const fastTilesAPI = url.searchParams.get('fastTilesAPI')
+      const tileset = url.searchParams.get('tileset')
 
-      const [z, x, y] = originalUrl.match(/heatmap\/(\d+)\/(\d+)\/(\d+)/).slice(1,4).map(d => parseInt(d))
+      const [z, x, y] = originalUrl.match(/__heatmap__\/(\d+)\/(\d+)\/(\d+)/).slice(1,4).map(d => parseInt(d))
 
-
-      // const finalUrl = originalUrl.replace('http://heatmap', `https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1/${TILESET}/tile/heatmap`)
-      const finalUrl = `https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1/${TILESET}/tile/heatmap/${z}/${x}/${y}`
+      const finalUrl = `${fastTilesAPI}${tileset}/tile/heatmap/${z}/${x}/${y}`
       
       const finalReq = new Request(finalUrl, { 
         headers: e.request.headers
@@ -231,8 +232,7 @@ self.addEventListener('fetch', (e) => {
 
 
           const TILESET_NUM_CELLS = 64
-          const aggregateParams = { sourceLayer: TILESET, geomType, delta, numCells: TILESET_NUM_CELLS, x, y, z }
-
+          const aggregateParams = { sourceLayer: tileset, geomType, delta, numCells: TILESET_NUM_CELLS, x, y, z }
           // Cache hit - return response
           if (cacheResponse) {
             return aggregate(cacheResponse, aggregateParams)

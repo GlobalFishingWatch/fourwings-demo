@@ -8,6 +8,8 @@ const baseRadius = 35
 
 const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
+const FAST_TILES_API = 'https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1/'
+
 const heatmapColor = [
   "interpolate",
   ["linear"],
@@ -42,11 +44,11 @@ const defaultMapStyle = {
       // tiles: ['http://34.69.224.29/v1/fishing_hour/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}?filters=flag==\'ESP\' and timestamp > \'2019-12-01T00:00:00\''],
-      tiles: ['http://heatmap/{z}/{x}/{y}?geomType=point'],
+      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=point&tileset=fishing_64cells&fastTilesAPI=${FAST_TILES_API}`],
     },
     "heatmap-playback-square": {
       type: "vector",
-      tiles: ['http://heatmap/{z}/{x}/{y}?geomType=square'],
+      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=square&tileset=fishing_64cells&fastTilesAPI=${FAST_TILES_API}`],
     },
   },
   "layers": [
@@ -204,8 +206,10 @@ const Map = () => {
   const [viewport, setViewport] = useState({
     width: '100%',
     height: 950,
-    latitude: 0,
-    longitude: 160,
+    // latitude: 0,
+    // longitude: 160,
+    latitude: 40,
+    longitude: 10,
     zoom: 4
   })
   const style = useMemo(() => {
@@ -213,7 +217,10 @@ const Map = () => {
     const endTimestampMs = new Date(dates.end).getTime()
     const startTimestampDays = Math.floor(startTimestampMs / 1000 / 60 / 60 / 24)
     const endTimestampDays = Math.floor(endTimestampMs / 1000 / 60 / 60 / 24)
-    const daysDelta = endTimestampDays - startTimestampDays
+    let daysDelta = endTimestampDays - startTimestampDays
+
+    // Crappy hack to avoid having delta change from +- one day when just playbacking
+    daysDelta = daysDelta - daysDelta % 2
     console.log(daysDelta)
 
     const s = { ...defaultMapStyle }
@@ -290,7 +297,7 @@ const Map = () => {
     s.layers[HEATMAP_INDEX].layout.visibility = (mode === 'heatmap') ? 'visible' : 'none'
     s.layers[SQUARE_INDEX].layout.visibility = (mode === 'square') ? 'visible' : 'none'
     // s.layers[EXTRUDED_INDEX].layout.visibility = (mode === 'square_extruded') ? 'visible' : 'none'
-    
+    console.log(s)
     return s
   }, [dates, mode])
 
