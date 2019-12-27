@@ -189,7 +189,7 @@ const aggregate = (f, { sourceLayer, geomType, numCells, delta, x, y, z }) => {
 
     const tileindex = geojsonVt(geoJSON)
     const newTile = tileindex.getTile(z, x, y)
-    const newBuff = vtpbf.fromGeojsonVt({ 'fishing': newTile })
+    const newBuff = vtpbf.fromGeojsonVt({ [sourceLayer]: newTile })
 
     perfs.push(performance.now() - t)
     if (perfs.length > 5) {

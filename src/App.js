@@ -6,9 +6,13 @@ import Timebar from '@globalfishingwatch/map-components/components/timebar'
 const baseIntensity = .02
 const baseRadius = 35
 
+// TODO this value is actually what should be computed form the stats endpoint
+const COLOR_RAMP_MULT = 40
+
 const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
 
 const FAST_TILES_API = 'https://fst-tiles-jzzp2ui3wq-uc.a.run.app/v1/'
+const TILESET = 'fishing_64cells'
 
 const heatmapColor = [
   "interpolate",
@@ -44,11 +48,11 @@ const defaultMapStyle = {
       // tiles: ['http://34.69.224.29/v1/fishing_hour/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}?filters=flag==\'ESP\' and timestamp > \'2019-12-01T00:00:00\''],
-      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=point&tileset=fishing_64cells&fastTilesAPI=${FAST_TILES_API}`],
+      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=point&tileset=${TILESET}&fastTilesAPI=${FAST_TILES_API}`],
     },
     "heatmap-playback-square": {
       type: "vector",
-      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=square&tileset=fishing_64cells&fastTilesAPI=${FAST_TILES_API}`],
+      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=square&tileset=${TILESET}&fastTilesAPI=${FAST_TILES_API}`],
     },
   },
   "layers": [
@@ -61,7 +65,7 @@ const defaultMapStyle = {
         "id": "heatmap-playback-square",
         "type": "fill",
         "source": "heatmap-playback-square",
-        "source-layer": 'fishing',
+        "source-layer": TILESET,
         "layout": {
           "visibility": "visible"
         },
@@ -74,7 +78,7 @@ const defaultMapStyle = {
         "id": "heatmap-playback",
         "type": "heatmap",
         source: 'heatmap-playback-point',
-        "source-layer": 'fishing',
+        "source-layer": TILESET,
         "layout": {
           "visibility": "visible"
         },
@@ -260,11 +264,16 @@ const Map = () => {
         "interpolate",
         ["linear"],
         ["to-number", ['get', (startTimestampDays - OFFSET).toString()]],
-        0,"rgba(0, 0, 0, 0)",
-        1,"#0c276c",
-        15,"#3B9088",
-        30,"#EEFF00",
-        40,"#ffffff"
+        0,
+        'rgba(0, 0, 0, 0)',
+        COLOR_RAMP_MULT * 0.01,
+        '#0c276c',
+        COLOR_RAMP_MULT * 0.4,
+        '#114685',
+        COLOR_RAMP_MULT * 0.8,
+        '#00ffc3',
+        COLOR_RAMP_MULT * 1,
+        '#ffffff',
       ]
     }
 

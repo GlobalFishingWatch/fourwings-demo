@@ -3589,7 +3589,7 @@
 
       const tileindex = geojsonvt(geoJSON);
       const newTile = tileindex.getTile(z, x, y);
-      const newBuff = vtPbf.fromGeojsonVt({ 'fishing': newTile });
+      const newBuff = vtPbf.fromGeojsonVt({ [sourceLayer]: newTile });
 
       perfs.push(performance.now() - t);
       if (perfs.length > 5) {
