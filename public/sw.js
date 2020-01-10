@@ -3618,10 +3618,15 @@
         const delta = parseInt(url.searchParams.get('delta') || '10');
         const fastTilesAPI = url.searchParams.get('fastTilesAPI');
         const tileset = url.searchParams.get('tileset');
+        const filters = url.searchParams.get('filters');
+        console.log(filters);
 
         const [z, x, y] = originalUrl.match(/__heatmap__\/(\d+)\/(\d+)\/(\d+)/).slice(1,4).map(d => parseInt(d));
 
-        const finalUrl = `${fastTilesAPI}${tileset}/tile/heatmap/${z}/${x}/${y}`;
+        let finalUrl = `${fastTilesAPI}${tileset}/tile/heatmap/${z}/${x}/${y}`;
+        if (filters) {
+          finalUrl = `${finalUrl}?filters=${filters}`;
+        }
         
         const finalReq = new Request(finalUrl, { 
           headers: e.request.headers

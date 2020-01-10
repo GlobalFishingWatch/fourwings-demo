@@ -6,7 +6,7 @@ import Timebar from '@globalfishingwatch/map-components/components/timebar'
 const baseIntensity = .02
 const baseRadius = 35
 
-// TODO this value is actually what should be computed form the stats endpoint
+// TODO this value is actually what should be computed from the stats endpoint
 const COLOR_RAMP_MULT = 40
 
 const OFFSET = new Date('2019-01-01T00:00:00.000Z').getTime() / 1000 / 60 / 60 / 24
@@ -25,6 +25,7 @@ const heatmapColor = [
   1,"#ffffff"
 ]
 
+const FILTERS = 'flag==\'FRA\''
 
 
 const defaultMapStyle = {
@@ -48,18 +49,18 @@ const defaultMapStyle = {
       // tiles: ['http://34.69.224.29/v1/fishing_hour/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}'],
       // tiles: ['http://34.69.224.29/v1/fishing/heatmap/{z}/{x}/{y}?filters=flag==\'ESP\' and timestamp > \'2019-12-01T00:00:00\''],
-      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=point&tileset=${TILESET}&fastTilesAPI=${FAST_TILES_API}`],
+      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=point&tileset=${TILESET}&fastTilesAPI=${FAST_TILES_API}&filters=${FILTERS}`],
     },
     "heatmap-playback-square": {
       type: "vector",
-      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=square&tileset=${TILESET}&fastTilesAPI=${FAST_TILES_API}`],
+      tiles: [`http://__heatmap__/{z}/{x}/{y}?geomType=square&tileset=${TILESET}&fastTilesAPI=${FAST_TILES_API}&filters=${FILTERS}`],
     },
   },
   "layers": [
       {
         "id": "background",
         "type": "background",
-        "paint": {"background-color": "#0a1738"}
+        "paint": {"background-color": "#000000"}
       },
       {
         "id": "heatmap-playback-square",
@@ -158,7 +159,7 @@ const defaultMapStyle = {
           "paint": {
             "fill-outline-color": "#0a1738",
             "fill-opacity": 0.99, // forces layer to render in translucent pass - https://github.com/mapbox/mapbox-gl-js/issues/5831
-            "fill-color": "#374a6d"
+            "fill-color": "#aaaaaa"
           }
       },
       {
