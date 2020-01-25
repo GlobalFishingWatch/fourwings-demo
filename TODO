@@ -1,0 +1,7 @@
+TODO:
+- skip cells -> aggregate cells ?
+- gridded/blob swap
+  - 2 layers at the same time? Should it be handled by a heatmap wrapper gen?
+- autoscale radius with blobs
+- smart quantize offset
+  - from worker to generator?

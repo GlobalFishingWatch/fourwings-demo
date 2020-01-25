@@ -23,7 +23,8 @@
     "eject": "react-scripts eject",
     "api": "nodemon server.js",
     "serve": "serve -s build",
-    "compile-sw": "rollup --config --watch "
+    "copy-worker": "./node_modules/@globalfishingwatch/map-components/scripts/copy-worker.js",
+    "copy-worker:watch": "./node_modules/@globalfishingwatch/map-components/scripts/copy-worker.js --watch"
   },
   "eslintConfig": {
     "extends": "react-app"
