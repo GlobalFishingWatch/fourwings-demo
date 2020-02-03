@@ -2914,7 +2914,7 @@
     const writeValueToFeature = (quantizedTail) => {
       // TODO add skipOddCells check
       // console.log(skipOddCells, currentFeatureCell)
-      if (skipOddCells === true && currentFeatureCell % 2 !== 0) {
+      if (skipOddCells === true && currentFeatureCell % 4 !== 0) {
         return
       }
       if (singleFrameStart === null) {
@@ -2993,6 +2993,9 @@
 
       if (isEndOfFeature) {
         writeFinalTail();
+        currentFeature.properties.presence = Object.values(currentFeature.properties)
+          .map((v) => `hello${v}`)
+          .join(',');
         features.push(currentFeature);
         currentFeature = {
           type: 'Feature',
@@ -3069,6 +3072,7 @@
       // TODO make me configurable
       skipOddCells: false,
     });
+
     return aggregated
   };
 
@@ -3128,6 +3132,7 @@
       finalUrl.searchParams.set('filters', serverSideFilters);
     }
     const finalUrlStr = decodeURI(finalUrl.toString());
+    console.log(finalUrlStr);
     // console.log('real tile zoom', z)
     const finalReq = new Request(finalUrlStr);
 

@@ -69,6 +69,7 @@ const Map = () => {
         color: 'white',
         opacity: .99
       },
+      
     ]
     return config
 
@@ -91,10 +92,12 @@ const Map = () => {
     interactiveLayerIds={['heatmap']}
     onHover={(e) => {
       if (e.features && e.features.length && currentlyAt) {
+        const presence = e.features[0].properties.presence.split(',')
         const valueAt = e.features[0].properties[currentlyAt]
         if (valueAt) {
           setHighlighted({
-            value: e.features[0].properties[currentlyAt],
+            // value: e.features[0].properties[currentlyAt],
+            value: presence[currentlyAt],
             lngLat: e.lngLat
           })
           return
