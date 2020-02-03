@@ -34,7 +34,7 @@ export function register(config) {
     window.addEventListener('load', () => {
       // can't be called 'service-worker.js', CRA's default, because it gets replaced
       // by the no-op sw when in dev
-      const swUrl = `${process.env.PUBLIC_URL}/fast-tiles-worker.js`;
+      const swUrl = `${process.env.PUBLIC_URL}/fourwings-worker.js`;
 
       // console.log(swUrl, process.env.PUBLIC_URL)
       if (isLocalhost) {
