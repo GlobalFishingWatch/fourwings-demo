@@ -110,6 +110,11 @@
   var SHIFT_LEFT_32 = (1 << 16) * (1 << 16),
       SHIFT_RIGHT_32 = 1 / SHIFT_LEFT_32;
 
+  // Threshold chosen based on both benchmarking and knowledge about browser string
+  // data structures (which currently switch structure types at 12 bytes or more)
+  var TEXT_DECODER_MIN_LENGTH = 12;
+  var utf8TextDecoder = typeof TextDecoder === 'undefined' ? null : new TextDecoder('utf8');
+
   Pbf.prototype = {
 
       destroy: function() {
@@ -203,10 +208,16 @@
       },
 
       readString: function() {
-          var end = this.readVarint() + this.pos,
-              str = readUtf8(this.buf, this.pos, end);
+          var end = this.readVarint() + this.pos;
+          var pos = this.pos;
           this.pos = end;
-          return str;
+
+          if (end - pos >= TEXT_DECODER_MIN_LENGTH && utf8TextDecoder) {
+              // longer strings are fast with the built-in browser TextDecoder API
+              return readUtf8TextDecoder(this.buf, pos, end);
+          }
+          // short strings are fast with our custom implementation
+          return readUtf8(this.buf, pos, end);
       },
 
       readBytes: function() {
@@ -662,6 +673,10 @@
       }
 
       return str;
+  }
+
+  function readUtf8TextDecoder(buf, pos, end) {
+      return utf8TextDecoder.decode(buf.subarray(pos, end));
   }
 
   function writeUtf8(buf, str, pos) {
@@ -2887,14 +2902,10 @@
       delta = 30,
       geomType = GEOM_TYPES.GRIDDED,
       numCells = 64,
+      skipOddCells = false,
       singleFrameStart = null,
     }
   ) => {
-    // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
-    //      Generator could set it by default to BLOB, but it could be overridden by layer params
-    // TODO Should be aggregation, not skipping
-    const skipOddCells = geomType === GEOM_TYPES.BLOB;
-
     const features = [];
 
     let aggregating = [];
@@ -2913,10 +2924,6 @@
 
     const writeValueToFeature = (quantizedTail) => {
       // TODO add skipOddCells check
-      // console.log(skipOddCells, currentFeatureCell)
-      if (skipOddCells === true && currentFeatureCell % 2 !== 0) {
-        return
-      }
       if (singleFrameStart === null) {
         currentFeature.properties[quantizedTail.toString()] = currentAggregatedValue;
       } else {
@@ -3184,4 +3191,4 @@
   });
 
 }());
-//# sourceMappingURL=fast-tiles-worker.js.map
+//# sourceMappingURL=fourwings-worker.js.map
