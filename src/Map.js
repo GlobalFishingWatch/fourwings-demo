@@ -1,7 +1,7 @@
 import React, {useState, useMemo, useEffect, useRef} from 'react';
 import ReactMapGL, { Popup } from 'react-map-gl';
 import { useMapStyler } from '@globalfishingwatch/map-components/components/map-styler-hook'
-import { LayerComposer, TYPES, HEATMAP_GEOM_TYPES, HEATMAP_COLOR_RAMPS } from '@globalfishingwatch/map-styler/build'
+import { LayerComposer, TYPES, HEATMAP_GEOM_TYPES, HEATMAP_COLOR_RAMPS } from '@globalfishingwatch/map-styler'
 import Timebar from '@globalfishingwatch/map-components/components/timebar'
 
 const layerComposer = new LayerComposer()
@@ -77,7 +77,7 @@ const Map = () => {
 
   }, [dates.start, dates.end, viewport.zoom, usingTimebar, idle, geomType])
 
-  const [style] = useMapStyler(layerComposer, styleConfig, {})
+  const [style] = useMapStyler(layerComposer, styleConfig)
   const [highlighted, setHighlighted] = useState(null)
 
   const currentlyAt = style && style.layers[2].metadata.currentlyAt
