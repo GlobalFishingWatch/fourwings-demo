@@ -1,7 +1,7 @@
 import React, {useState, useMemo, useEffect, useRef} from 'react';
 import ReactMapGL, { Popup } from 'react-map-gl';
-import { useMapStyler } from '@globalfishingwatch/map-components/components/map-styler-hook'
-import { LayerComposer, TYPES, HEATMAP_GEOM_TYPES, HEATMAP_COLOR_RAMPS } from '@globalfishingwatch/map-styler'
+import useMapStyler from '@globalfishingwatch/map-components/components/map-styler-hook'
+import LayerComposer, { TYPES, HEATMAP_GEOM_TYPES, HEATMAP_COLOR_RAMPS } from '@globalfishingwatch/map-styler'
 import Timebar from '@globalfishingwatch/map-components/components/timebar'
 
 const layerComposer = new LayerComposer()
