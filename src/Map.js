@@ -1,10 +1,11 @@
 import React, {useState, useMemo, useEffect, useRef} from 'react';
 import ReactMapGL, { Popup } from 'react-map-gl';
 import useMapStyler from '@globalfishingwatch/map-components/components/map-styler-hook'
-import LayerComposer, { TYPES, HEATMAP_GEOM_TYPES, HEATMAP_COLOR_RAMPS } from '@globalfishingwatch/map-styler'
+import LayerComposer, { sort, TYPES, HEATMAP_GEOM_TYPES, HEATMAP_COLOR_RAMPS } from '@globalfishingwatch/map-styler'
 import Timebar from '@globalfishingwatch/map-components/components/timebar'
 
 const layerComposer = new LayerComposer()
+const styleTransformations = [sort]
 
 const Map = () => {
   const [viewport, setViewport] = useState({
@@ -31,11 +32,6 @@ const Map = () => {
   
   const styleConfig = useMemo(() => {
     const config = [
-      {
-        id: 'background',
-        type: TYPES.BACKGROUND,
-        color: '#0c276c'
-      },
       {
         id: 'heatmap-anim',
         type: TYPES.HEATMAP_TYPE,
@@ -71,16 +67,21 @@ const Map = () => {
         color: 'white',
         opacity: .99
       },
-      
+      {
+        id: 'background',
+        type: TYPES.BACKGROUND,
+        color: '#0c276c'
+      },
     ]
     return config
 
   }, [dates.start, dates.end, viewport.zoom, usingTimebar, idle, geomType])
 
-  const [style] = useMapStyler(layerComposer, styleConfig)
+  const [style] = useMapStyler(layerComposer, styleTransformations, styleConfig)
+  console.log(style)
   const [highlighted, setHighlighted] = useState(null)
 
-  const currentlyAt = style && style.layers[2].metadata.currentlyAt
+  // const currentlyAt = style && style.layers[2].metadata.currentlyAt
 
 
 
@@ -94,19 +95,19 @@ const Map = () => {
     mapStyle={style}
     interactiveLayerIds={['heatmap']}
     onHover={(e) => {
-      if (e.features && e.features.length && currentlyAt) {
-        const presence = e.features[0].properties.presence.split(',')
-        const valueAt = e.features[0].properties[currentlyAt]
-        if (valueAt) {
-          setHighlighted({
-            // value: e.features[0].properties[currentlyAt],
-            value: presence[currentlyAt],
-            lngLat: e.lngLat
-          })
-          return
-        }
-      }
-      setHighlighted(null)
+      // if (e.features && e.features.length && currentlyAt) {
+      //   const presence = e.features[0].properties.presence.split(',')
+      //   const valueAt = e.features[0].properties[currentlyAt]
+      //   if (valueAt) {
+      //     setHighlighted({
+      //       // value: e.features[0].properties[currentlyAt],
+      //       value: presence[currentlyAt],
+      //       lngLat: e.lngLat
+      //     })
+      //     return
+      //   }
+      // }
+      // setHighlighted(null)
     }}
     mapOptions={{ hash: true, showTileBoundaries: true }}
   >
