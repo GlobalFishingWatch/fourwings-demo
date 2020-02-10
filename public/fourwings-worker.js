@@ -1596,6 +1596,16 @@
   vtPbf.fromGeojsonVt = fromGeojsonVt_1;
   vtPbf.GeoJSONWrapper = GeoJSONWrapper_1;
 
+  var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+
+  function createCommonjsModule(fn, module) {
+  	return module = { exports: {} }, fn(module, module.exports), module.exports;
+  }
+
+  var geojsonVtDev = createCommonjsModule(function (module, exports) {
+  (function (global, factory) {
+   module.exports = factory() ;
+  }(commonjsGlobal, (function () {
   // calculate simplification data using optimized Douglas-Peucker algorithm
 
   function simplify(coords, first, last, sqTolerance) {
@@ -2481,6 +2491,227 @@
       return dest;
   }
 
+  return geojsonvt;
+
+  })));
+  });
+
+  var GEOM_TYPES = {
+      BLOB: 'blob',
+      GRIDDED: 'gridded',
+      EXTRUDED: 'extruded',
+  };
+  //# sourceMappingURL=constants.js.map
+
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // const Pbf = require('pbf')
+  var BUFFER_HEADERS = ['cell', 'min', 'max'];
+  var rawTileToIntArray = function (rawTileArrayBuffer, _a) {
+      var tileset = _a.tileset;
+      var tile = new VectorTile$1(new pbf(rawTileArrayBuffer));
+      var tileLayer = tile.layers[tileset];
+      var bufferSize = 0;
+      var featuresProps = [];
+      for (var f = 0; f < tileLayer.length; f++) {
+          var rawFeature = tileLayer.feature(f);
+          var values = rawFeature.properties;
+          var cell = values.cell;
+          delete values.cell;
+          var allTimestampsRaw = Object.keys(values);
+          var allTimestamps = allTimestampsRaw.map(function (t) { return parseInt(t); });
+          var minTimestamp = Math.min.apply(Math, allTimestamps);
+          var maxTimestamp = Math.max.apply(Math, allTimestamps);
+          var featureSize = BUFFER_HEADERS.length + (maxTimestamp - minTimestamp + 1);
+          featuresProps.push({
+              values: values,
+              cell: cell,
+              minTimestamp: minTimestamp,
+              maxTimestamp: maxTimestamp,
+              featureSize: featureSize,
+          });
+          bufferSize += featureSize;
+      }
+      var buffer = new Uint16Array(bufferSize);
+      var bufferPos = 0;
+      featuresProps.forEach(function (featureProps, i) {
+          buffer[bufferPos + 0] = featureProps.cell;
+          buffer[bufferPos + 1] = featureProps.minTimestamp;
+          buffer[bufferPos + 2] = featureProps.maxTimestamp;
+          var featureBufferPos = bufferPos + BUFFER_HEADERS.length;
+          for (var d = featureProps.minTimestamp; d <= featureProps.maxTimestamp; d++) {
+              var currentValue = featureProps.values[d.toString()];
+              buffer[featureBufferPos] = currentValue || 0;
+              featureBufferPos++;
+          }
+          bufferPos += featureProps.featureSize;
+      });
+      return buffer;
+  };
+  var getCellCoords = function (tileBBox, cell, numCells) {
+      var col = cell % numCells;
+      var row = Math.floor(cell / numCells);
+      var minX = tileBBox[0], minY = tileBBox[1], maxX = tileBBox[2], maxY = tileBBox[3];
+      var width = maxX - minX;
+      var height = maxY - minY;
+      return {
+          col: col,
+          row: row,
+          width: width,
+          height: height,
+      };
+  };
+  var getPointGeom = function (tileBBox, cell, numCells) {
+      var minX = tileBBox[0], minY = tileBBox[1];
+      var _a = getCellCoords(tileBBox, cell, numCells), col = _a.col, row = _a.row, width = _a.width, height = _a.height;
+      var pointMinX = minX + (col / numCells) * width;
+      var pointMinY = minY + (row / numCells) * height;
+      return {
+          type: 'Point',
+          coordinates: [pointMinX, pointMinY],
+      };
+  };
+  var getSquareGeom = function (tileBBox, cell, numCells) {
+      var minX = tileBBox[0], minY = tileBBox[1];
+      var _a = getCellCoords(tileBBox, cell, numCells), col = _a.col, row = _a.row, width = _a.width, height = _a.height;
+      var squareMinX = minX + (col / numCells) * width;
+      var squareMinY = minY + (row / numCells) * height;
+      var squareMaxX = minX + ((col + 1) / numCells) * width;
+      var squareMaxY = minY + ((row + 1) / numCells) * height;
+      return {
+          type: 'Polygon',
+          coordinates: [
+              [
+                  [squareMinX, squareMinY],
+                  [squareMaxX, squareMinY],
+                  [squareMaxX, squareMaxY],
+                  [squareMinX, squareMaxY],
+                  [squareMinX, squareMinY],
+              ],
+          ],
+      };
+  };
+  var aggregate = function (arrayBuffer, options) {
+      var quantizeOffset = options.quantizeOffset, tileBBox = options.tileBBox, _a = options.delta, delta = _a === void 0 ? 30 : _a, _b = options.geomType, geomType = _b === void 0 ? GEOM_TYPES.GRIDDED : _b, _c = options.numCells, numCells = _c === void 0 ? 64 : _c, _d = options.singleFrameStart, singleFrameStart = _d === void 0 ? null : _d;
+      // TODO Here assuming that BLOB --> animation frame. Should it be configurable in another way?
+      //      Generator could set it by default to BLOB, but it could be overridden by layer params
+      // TODO Should be aggregation, not skipping
+      var skipOddCells = geomType === GEOM_TYPES.BLOB;
+      var features = [];
+      var aggregating = [];
+      var currentFeature = {
+          type: 'Feature',
+          properties: {
+              value: 0,
+              info: '',
+          },
+          geometry: {},
+      };
+      var currentFeatureCell;
+      var currentFeatureMinTimestamp;
+      var currentFeatureMaxTimestamp;
+      var currentFeatureTimestampDelta;
+      var currentAggregatedValue = 0;
+      var featureBufferPos = 0;
+      var head;
+      var tail;
+      var writeValueToFeature = function (quantizedTail) {
+          // TODO add skipOddCells check
+          // console.log(skipOddCells, currentFeatureCell)
+          if (skipOddCells === true && currentFeatureCell % 4 !== 0) {
+              return;
+          }
+          if (singleFrameStart === null) {
+              currentFeature.properties[quantizedTail.toString()] = currentAggregatedValue;
+          }
+          else {
+              if (singleFrameStart === quantizedTail) {
+                  currentFeature.properties.value = currentAggregatedValue;
+              }
+          }
+      };
+      // write values after tail > minTimestamp
+      var writeFinalTail = function () {
+          var finalTailValue = 0;
+          for (var finalTail = tail + 1; finalTail <= currentFeatureMaxTimestamp; finalTail++) {
+              currentAggregatedValue = currentAggregatedValue - finalTailValue;
+              if (finalTail > currentFeatureMinTimestamp) {
+                  finalTailValue = aggregating.shift();
+              }
+              else {
+                  finalTailValue = 0;
+              }
+              var quantizedTail = finalTail - quantizeOffset;
+              if (quantizedTail >= 0) {
+                  writeValueToFeature(quantizedTail);
+              }
+          }
+      };
+      for (var i = 0; i < arrayBuffer.length; i++) {
+          var value = arrayBuffer[i];
+          switch (featureBufferPos) {
+              // cell
+              case 0:
+                  currentFeatureCell = value;
+                  if (geomType === GEOM_TYPES.BLOB) {
+                      currentFeature.geometry = getPointGeom(tileBBox, currentFeatureCell, numCells);
+                  }
+                  else {
+                      currentFeature.geometry = getSquareGeom(tileBBox, currentFeatureCell, numCells);
+                  }
+                  break;
+              // minTs
+              case 1:
+                  currentFeatureMinTimestamp = value;
+                  head = currentFeatureMinTimestamp;
+                  break;
+              // mx
+              case 2:
+                  currentFeatureMaxTimestamp = value;
+                  currentFeatureTimestampDelta = currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
+                  break;
+              // actual value
+              default:
+                  // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
+                  tail = head - delta + 1;
+                  aggregating.push(value);
+                  var tailValue = 0;
+                  if (tail > currentFeatureMinTimestamp) {
+                      tailValue = aggregating.shift();
+                  }
+                  currentAggregatedValue = currentAggregatedValue + value - tailValue;
+                  var quantizedTail = tail - quantizeOffset;
+                  if (currentAggregatedValue > 0 && quantizedTail >= 0) {
+                      writeValueToFeature(quantizedTail);
+                  }
+                  head++;
+          }
+          featureBufferPos++;
+          var isEndOfFeature = featureBufferPos - BUFFER_HEADERS.length - 1 === currentFeatureTimestampDelta;
+          if (isEndOfFeature) {
+              writeFinalTail();
+              currentFeature.properties.info = Object.values(currentFeature.properties)
+                  .map(function (v) { return "" + v; })
+                  .join(',');
+              features.push(currentFeature);
+              currentFeature = {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {},
+              };
+              featureBufferPos = 0;
+              currentAggregatedValue = 0;
+              aggregating = [];
+              continue;
+          }
+      }
+      var geoJSON = {
+          type: 'FeatureCollection',
+          features: features,
+      };
+      return geoJSON;
+  };
+  //# sourceMappingURL=aggregate.js.map
+
   var d2r = Math.PI / 180,
       r2d = 180 / Math.PI;
 
@@ -2786,408 +3017,152 @@
       pointToTileFraction: pointToTileFraction
   };
 
-  const GEOM_TYPES = {
-    BLOB: 'blob',
-    GRIDDED: 'gridded',
-    EXTRUDED: 'extruded',
-  };
-
-  const BUFFER_HEADERS = ['cell', 'min', 'max'];
-
-  const rawTileToIntArray = (rawTileArrayBuffer, { tileset }) => {
-    const tile = new VectorTile$1(new pbf(rawTileArrayBuffer));
-    const tileLayer = tile.layers[tileset];
-
-    let bufferSize = 0;
-    const featuresProps = [];
-    for (let f = 0; f < tileLayer.length; f++) {
-      const rawFeature = tileLayer.feature(f);
-      const values = rawFeature.properties;
-      const cell = values.cell;
-
-      delete values.cell;
-
-      const allTimestampsRaw = Object.keys(values);
-      const allTimestamps = allTimestampsRaw.map((t) => parseInt(t));
-      const minTimestamp = Math.min(...allTimestamps);
-      const maxTimestamp = Math.max(...allTimestamps);
-
-      const featureSize = BUFFER_HEADERS.length + (maxTimestamp - minTimestamp + 1);
-
-      featuresProps.push({
-        values,
-        cell,
-        minTimestamp,
-        maxTimestamp,
-        featureSize,
-      });
-
-      bufferSize += featureSize;
-    }
-
-    const buffer = new Uint16Array(bufferSize);
-    let bufferPos = 0;
-    featuresProps.forEach((featureProps, i) => {
-      buffer[bufferPos + 0] = featureProps.cell;
-      buffer[bufferPos + 1] = featureProps.minTimestamp;
-      buffer[bufferPos + 2] = featureProps.maxTimestamp;
-      let featureBufferPos = bufferPos + BUFFER_HEADERS.length;
-
-      for (let d = featureProps.minTimestamp; d <= featureProps.maxTimestamp; d++) {
-        const currentValue = featureProps.values[d.toString()];
-        buffer[featureBufferPos] = currentValue || 0;
-        featureBufferPos++;
-      }
-
-      bufferPos += featureProps.featureSize;
-    });
-
-    return buffer
-  };
-
-  const getCellCoords = (tileBBox, cell, numCells) => {
-    const col = cell % numCells;
-    const row = Math.floor(cell / numCells);
-    const [minX, minY, maxX, maxY] = tileBBox;
-    const width = maxX - minX;
-    const height = maxY - minY;
-    return {
-      col,
-      row,
-      width,
-      height,
-    }
-  };
-
-  const getPointGeom = (tileBBox, cell, numCells) => {
-    const [minX, minY] = tileBBox;
-    const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells);
-
-    const pointMinX = minX + (col / numCells) * width;
-    const pointMinY = minY + (row / numCells) * height;
-
-    return {
-      type: 'Point',
-      coordinates: [pointMinX, pointMinY],
-    }
-  };
-
-  const getSquareGeom = (tileBBox, cell, numCells) => {
-    const [minX, minY] = tileBBox;
-    const { col, row, width, height } = getCellCoords(tileBBox, cell, numCells);
-
-    const squareMinX = minX + (col / numCells) * width;
-    const squareMinY = minY + (row / numCells) * height;
-    const squareMaxX = minX + ((col + 1) / numCells) * width;
-    const squareMaxY = minY + ((row + 1) / numCells) * height;
-    return {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [squareMinX, squareMinY],
-          [squareMaxX, squareMinY],
-          [squareMaxX, squareMaxY],
-          [squareMinX, squareMaxY],
-          [squareMinX, squareMinY],
-        ],
-      ],
-    }
-  };
-
-  const aggregate = (
-    arrayBuffer,
-    {
-      quantizeOffset,
-      tileBBox,
-      delta = 30,
-      geomType = GEOM_TYPES.GRIDDED,
-      numCells = 64,
-      skipOddCells = false,
-      singleFrameStart = null,
-    }
-  ) => {
-    const features = [];
-
-    let aggregating = [];
-    let currentFeature = {
-      type: 'Feature',
-      properties: {},
-    };
-    let currentFeatureCell;
-    let currentFeatureMinTimestamp;
-    let currentFeatureMaxTimestamp;
-    let currentFeatureTimestampDelta;
-    let currentAggregatedValue = 0;
-    let featureBufferPos = 0;
-    let head;
-    let tail;
-
-    const writeValueToFeature = (quantizedTail) => {
-      // TODO add skipOddCells check
-      if (singleFrameStart === null) {
-        currentFeature.properties[quantizedTail.toString()] = currentAggregatedValue;
-      } else {
-        if (singleFrameStart === quantizedTail) {
-          currentFeature.properties.value = currentAggregatedValue;
-        }
-      }
-    };
-
-    // write values after tail > minTimestamp
-    const writeFinalTail = () => {
-      let finalTailValue = 0;
-      for (let finalTail = tail + 1; finalTail <= currentFeatureMaxTimestamp; finalTail++) {
-        currentAggregatedValue = currentAggregatedValue - finalTailValue;
-        if (finalTail > currentFeatureMinTimestamp) {
-          finalTailValue = aggregating.shift();
-        } else {
-          finalTailValue = 0;
-        }
-        const quantizedTail = finalTail - quantizeOffset;
-        if (quantizedTail >= 0) {
-          writeValueToFeature(quantizedTail);
-        }
-      }
-    };
-
-    for (let i = 0; i < arrayBuffer.length; i++) {
-      const value = arrayBuffer[i];
-
-      switch (featureBufferPos) {
-        // cell
-        case 0:
-          currentFeatureCell = value;
-          if (geomType === GEOM_TYPES.BLOB) {
-            currentFeature.geometry = getPointGeom(tileBBox, currentFeatureCell, numCells);
-          } else {
-            currentFeature.geometry = getSquareGeom(tileBBox, currentFeatureCell, numCells);
-          }
-          break
-        // minTs
-        case 1:
-          currentFeatureMinTimestamp = value;
-          head = currentFeatureMinTimestamp;
-          break
-        // mx
-        case 2:
-          currentFeatureMaxTimestamp = value;
-          currentFeatureTimestampDelta = currentFeatureMaxTimestamp - currentFeatureMinTimestamp;
-          break
-        // actual value
-        default:
-          // when we are looking at ts 0 and delta is 10, we are in fact looking at the aggregation of day -9
-          tail = head - delta + 1;
-
-          aggregating.push(value);
-
-          let tailValue = 0;
-          if (tail > currentFeatureMinTimestamp) {
-            tailValue = aggregating.shift();
-          }
-          currentAggregatedValue = currentAggregatedValue + value - tailValue;
-
-          const quantizedTail = tail - quantizeOffset;
-
-          if (currentAggregatedValue > 0 && quantizedTail >= 0) {
-            writeValueToFeature(quantizedTail);
-          }
-          head++;
-      }
-      featureBufferPos++;
-
-      const isEndOfFeature =
-        featureBufferPos - BUFFER_HEADERS.length - 1 === currentFeatureTimestampDelta;
-
-      if (isEndOfFeature) {
-        writeFinalTail();
-        features.push(currentFeature);
-        currentFeature = {
-          type: 'Feature',
-          properties: {},
-        };
-        featureBufferPos = 0;
-        currentAggregatedValue = 0;
-        aggregating = [];
-        continue
-      }
-    }
-
-    const geoJSON = {
-      type: 'FeatureCollection',
-      features,
-    };
-    return geoJSON
-  };
-
   /* eslint no-restricted-globals: "off" */
-
-  const FAST_TILES_KEY = '__fast_tiles__';
-  const FAST_TILES_KEY_RX = new RegExp(FAST_TILES_KEY);
-  const FAST_TILES_KEY_XYZ_RX = new RegExp(`${FAST_TILES_KEY}\\/(\\d+)\\/(\\d+)\\/(\\d+)`);
-  const CACHE_TIMESTAMP_HEADER_KEY = 'sw-cache-timestamp';
-  const CACHE_NAME = FAST_TILES_KEY;
-  const CACHE_MAX_AGE_MS = 60 * 60 * 1000;
-
-  const isoToDate = (iso) => {
-    return new Date(iso).getTime()
+  // TODO use different tsconfig to include worker types here
+  // declare const self: ServiceWorkerGlobalScope
+  var FAST_TILES_KEY = '__fast_tiles__';
+  var FAST_TILES_KEY_RX = new RegExp(FAST_TILES_KEY);
+  var FAST_TILES_KEY_XYZ_RX = new RegExp(FAST_TILES_KEY + "\\/(\\d+)\\/(\\d+)\\/(\\d+)");
+  var CACHE_TIMESTAMP_HEADER_KEY = 'sw-cache-timestamp';
+  var CACHE_NAME = FAST_TILES_KEY;
+  var CACHE_MAX_AGE_MS = 60 * 60 * 1000;
+  var isoToDate = function (iso) {
+      return new Date(iso).getTime();
   };
-
-  const isoToDay = (iso) => {
-    return isoToDate(iso) / 1000 / 60 / 60 / 24
+  var isoToDay = function (iso) {
+      return isoToDate(iso) / 1000 / 60 / 60 / 24;
   };
-
-  self.addEventListener('install', (event) => {
-    console.log('install sw');
-    // cleaning up old cache values...
+  self.addEventListener('install', function () {
+      console.log('install sw');
+      // cleaning up old cache values...
   });
-
-  self.addEventListener('activate', (event) => {
-    console.log('activate sw_');
-    // self.clients.claim()
-
-    // const allClients = clients.matchAll({
-    //   includeUncontrolled: true
-    // }).then((a) => {
-    //   console.log(a)
-    // });
-
-    // Claim control of clients right after activating
-    // This allows
-    event.waitUntil(
-      self.clients.claim().then(() => {
-        console.log('Now ready to handle fetches?');
-      })
-    );
-    console.log('Now ready to handle fetches!');
+  self.addEventListener('activate', function (event) {
+      console.log('activate sw_');
+      // self.clients.claim()
+      // const allClients = clients.matchAll({
+      //   includeUncontrolled: true
+      // }).then((a) => {
+      //   console.log(a)
+      // });
+      // Claim control of clients right after activating
+      // This allows
+      event.waitUntil(self.clients.claim().then(function () {
+          console.log('Now ready to handle fetches?');
+      }));
+      console.log('Now ready to handle fetches!');
   });
-
-  const aggregateIntArray = (
-    intArray,
-    { geomType, numCells, delta, x, y, z, quantizeOffset, start, singleFrameStart }
-  ) => {
-    const tileBBox = tilebelt.tileToBBOX([x, y, z]);
-    const aggregated = aggregate(intArray, {
-      quantizeOffset,
-      tileBBox,
-      delta,
-      geomType,
-      numCells,
-      singleFrameStart,
-      // TODO make me configurable
-      skipOddCells: false,
-    });
-    return aggregated
+  var aggregateIntArray = function (intArray, options) {
+      var geomType = options.geomType, numCells = options.numCells, delta = options.delta, x = options.x, y = options.y, z = options.z, quantizeOffset = options.quantizeOffset, singleFrameStart = options.singleFrameStart;
+      var tileBBox = tilebelt.tileToBBOX([x, y, z]);
+      var aggregated = aggregate(intArray, {
+          quantizeOffset: quantizeOffset,
+          tileBBox: tileBBox,
+          delta: delta,
+          geomType: geomType,
+          numCells: numCells,
+          singleFrameStart: singleFrameStart,
+          // TODO make me configurable
+          skipOddCells: false,
+      });
+      return aggregated;
   };
-
-  const decodeTile = (originalResponse, tileset) => {
-    return originalResponse.arrayBuffer().then((buffer) => {
-      const intArray = rawTileToIntArray(buffer, { tileset });
-      return intArray
-    })
+  var decodeTile = function (originalResponse, tileset) {
+      return originalResponse.arrayBuffer().then(function (buffer) {
+          var intArray = rawTileToIntArray(buffer, { tileset: tileset });
+          return intArray;
+      });
   };
-
-  const encodeTileResponse = (aggregatedGeoJSON, { x, y, z, tileset }) => {
-    const tileindex = geojsonvt(aggregatedGeoJSON);
-    const newTile = tileindex.getTile(z, x, y);
-    const newBuff = vtPbf.fromGeojsonVt({ [tileset]: newTile });
-
-    return new Response(newBuff)
+  var encodeTileResponse = function (aggregatedGeoJSON, options) {
+      var _a;
+      var x = options.x, y = options.y, z = options.z, tileset = options.tileset;
+      var tileindex = geojsonVtDev(aggregatedGeoJSON);
+      var newTile = tileindex.getTile(z, x, y);
+      var newBuff = vtPbf.fromGeojsonVt((_a = {}, _a[tileset] = newTile, _a));
+      return new Response(newBuff);
   };
-
-  self.addEventListener('fetch', (fetchEvent) => {
-    const originalUrl = fetchEvent.request.url;
-
-    if (FAST_TILES_KEY_RX.test(originalUrl) !== true) {
-      return
-    }
-
-    const url = new URL(originalUrl);
-    const tileset = url.searchParams.get('tileset');
-    const geomType = url.searchParams.get('geomType');
-    const fastTilesAPI = url.searchParams.get('fastTilesAPI');
-    const quantizeOffset = parseInt(url.searchParams.get('quantizeOffset'));
-    const delta = parseInt(url.searchParams.get('delta') || '10');
-    const singleFrame = url.searchParams.get('singleFrame') === 'true';
-    const start = isoToDay(url.searchParams.get('start'));
-    const serverSideFilters = url.searchParams.get('serverSideFilters');
-
-    const [z, x, y] = originalUrl
-      .match(FAST_TILES_KEY_XYZ_RX)
-      .slice(1, 4)
-      .map((d) => parseInt(d));
-
-    const TILESET_NUM_CELLS = 64;
-    const aggregateParams = {
-      geomType,
-      numCells: TILESET_NUM_CELLS,
-      delta,
-      x,
-      y,
-      z,
-      quantizeOffset,
-      tileset,
-      singleFrameStart: singleFrame ? start - quantizeOffset : null,
-    };
-
-    const finalUrl = new URL(`${fastTilesAPI}${tileset}/tile/heatmap/${z}/${x}/${y}`);
-
-    if (serverSideFilters) {
-      finalUrl.searchParams.set('filters', serverSideFilters);
-    }
-    const finalUrlStr = decodeURI(finalUrl.toString());
-    // console.log('real tile zoom', z)
-    const finalReq = new Request(finalUrlStr);
-
-    const cachePromise = self.caches.match(finalReq).then((cacheResponse) => {
-      const now = new Date().getTime();
-      const cachedTimestamp =
-        cacheResponse && parseInt(cacheResponse.headers.get(CACHE_TIMESTAMP_HEADER_KEY));
-      // only get value from cache if it's recent enough
-      const hasRecentCache = cacheResponse && now - cachedTimestamp < CACHE_MAX_AGE_MS;
-      if (hasRecentCache) {
-        return cacheResponse.arrayBuffer().then((ab) => {
-          const intArray = new Uint16Array(ab);
-          const aggregated = aggregateIntArray(intArray, aggregateParams);
-          return encodeTileResponse(aggregated, aggregateParams)
-        })
+  self.addEventListener('fetch', function (fetchEvent) {
+      var originalUrl = fetchEvent.request.url;
+      if (FAST_TILES_KEY_RX.test(originalUrl) !== true) {
+          return;
       }
-
-      const fetchPromise = fetch(finalUrl);
-      const decodePromise = fetchPromise.then((fetchResponse) => {
-        if (!fetchResponse.ok) throw new Error()
-        // Response needs to be cloned to m odify headers (used for cache expiration)
-        // const responseToCache = fetchResponse.clone()
-        const decoded = decodeTile(fetchResponse, tileset);
-        return decoded
+      var url = new URL(originalUrl);
+      var tileset = url.searchParams.get('tileset');
+      var geomType = url.searchParams.get('geomType');
+      var fastTilesAPI = url.searchParams.get('fastTilesAPI');
+      var quantizeOffset = parseInt(url.searchParams.get('quantizeOffset') || '0');
+      var delta = parseInt(url.searchParams.get('delta') || '10');
+      var singleFrame = url.searchParams.get('singleFrame') === 'true';
+      var start = isoToDay(url.searchParams.get('start') || '');
+      var serverSideFilters = url.searchParams.get('serverSideFilters');
+      var _a = originalUrl
+          .match(FAST_TILES_KEY_XYZ_RX)
+          .slice(1, 4)
+          .map(function (d) { return parseInt(d); }), z = _a[0], x = _a[1], y = _a[2];
+      var TILESET_NUM_CELLS = 64;
+      var aggregateParams = {
+          geomType: geomType,
+          numCells: TILESET_NUM_CELLS,
+          delta: delta,
+          x: x,
+          y: y,
+          z: z,
+          quantizeOffset: quantizeOffset,
+          tileset: tileset,
+          singleFrameStart: singleFrame ? start - quantizeOffset : null,
+      };
+      var finalUrl = new URL("" + fastTilesAPI + tileset + "/tile/heatmap/" + z + "/" + x + "/" + y);
+      if (serverSideFilters) {
+          finalUrl.searchParams.set('filters', serverSideFilters);
+      }
+      var finalUrlStr = decodeURI(finalUrl.toString());
+      // console.log('real tile zoom', z)
+      var finalReq = new Request(finalUrlStr);
+      var cachePromise = self.caches.match(finalReq).then(function (cacheResponse) {
+          var now = new Date().getTime();
+          var cachedTimestamp = (cacheResponse && parseInt(cacheResponse.headers.get(CACHE_TIMESTAMP_HEADER_KEY) || '')) || 0;
+          // only get value from cache if it's recent enough
+          var hasRecentCache = cacheResponse && now - cachedTimestamp < CACHE_MAX_AGE_MS;
+          if (hasRecentCache && cacheResponse) {
+              return cacheResponse.arrayBuffer().then(function (ab) {
+                  var intArray = new Uint16Array(ab);
+                  var aggregated = aggregateIntArray(intArray, aggregateParams);
+                  return encodeTileResponse(aggregated, aggregateParams);
+              });
+          }
+          var fetchPromise = fetch(finalUrl);
+          var decodePromise = fetchPromise.then(function (fetchResponse) {
+              if (!fetchResponse.ok)
+                  throw new Error();
+              // Response needs to be cloned to m odify headers (used for cache expiration)
+              // const responseToCache = fetchResponse.clone()
+              var decoded = decodeTile(fetchResponse, tileset);
+              return decoded;
+          });
+          // Cache fetch response in parallel
+          decodePromise.then(function (intArray) {
+              var headers = new Headers();
+              var timestamp = new Date().getTime();
+              // add extra header to set a timestamp on cache - will be read at cache.matches call
+              headers.set(CACHE_TIMESTAMP_HEADER_KEY, timestamp);
+              // convert response to decoded int arrays
+              var blob = new Blob([intArray], { type: 'application/octet-binary' });
+              var cacheResponse = new Response(blob, {
+                  // status: fetchResponse.status,
+                  // statusText: fetchResponse.statusText,
+                  headers: headers,
+              });
+              self.caches.open(CACHE_NAME).then(function (cache) {
+                  cache.put(finalReq, cacheResponse);
+              });
+          });
+          // then, aggregate
+          var aggregatePromise = decodePromise.then(function (intArray) {
+              var aggregated = aggregateIntArray(intArray, aggregateParams);
+              return encodeTileResponse(aggregated, aggregateParams);
+          });
+          return aggregatePromise;
       });
-
-      // Cache fetch response in parallel
-      decodePromise.then((intArray) => {
-        const headers = new Headers();
-        const timestamp = new Date().getTime();
-        // add extra header to set a timestamp on cache - will be read at cache.matches call
-        headers.set(CACHE_TIMESTAMP_HEADER_KEY, timestamp);
-        // convert response to decoded int arrays
-        const blob = new Blob([intArray], { type: 'application/octet-binary' });
-
-        const cacheResponse = new Response(blob, {
-          // status: fetchResponse.status,
-          // statusText: fetchResponse.statusText,
-          headers,
-        });
-        self.caches.open(CACHE_NAME).then((cache) => {
-          cache.put(finalReq, cacheResponse);
-        });
-      });
-
-      // then, aggregate
-      const aggregatePromise = decodePromise.then((intArray) => {
-        const aggregated = aggregateIntArray(intArray, aggregateParams);
-        return encodeTileResponse(aggregated, aggregateParams)
-      });
-      return aggregatePromise
-    });
-    fetchEvent.respondWith(cachePromise);
+      fetchEvent.respondWith(cachePromise);
   });
 
 }());

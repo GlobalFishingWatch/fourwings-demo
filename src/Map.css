@@ -1,0 +1,35 @@
+body {
+  overflow: hidden;
+}
+
+.container {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 1fr 116px;
+  grid-template-areas: "layers map" "timebar timebar";
+  background: #0c276c;
+  color: white
+}
+
+.timebar { grid-area: timebar; }
+
+.layers { 
+  list-style: none;
+  padding: 20px;
+  grid-area: layers;
+}
+
+.map { 
+  grid-area: map;
+  width: 100%;
+  height: 100%;
+}
+
+.layers li {
+  margin: 20px 10px;
+}
+
+.popup {
+  color: #0c276c;
+}
