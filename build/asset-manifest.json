@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/static/css/main.65fa45d0.chunk.css",
-    "main.js": "/static/js/main.bd1d11be.chunk.js",
-    "main.js.map": "/static/js/main.bd1d11be.chunk.js.map",
-    "runtime~main.js": "/static/js/runtime~main.a8a9905a.js",
-    "runtime~main.js.map": "/static/js/runtime~main.a8a9905a.js.map",
-    "static/js/2.25b02a65.chunk.js": "/static/js/2.25b02a65.chunk.js",
-    "static/js/2.25b02a65.chunk.js.map": "/static/js/2.25b02a65.chunk.js.map",
-    "index.html": "/index.html",
-    "precache-manifest.b09337ac11328c7c3b675b8d8a7ba226.js": "/precache-manifest.b09337ac11328c7c3b675b8d8a7ba226.js",
-    "service-worker.js": "/service-worker.js",
-    "static/css/main.65fa45d0.chunk.css.map": "/static/css/main.65fa45d0.chunk.css.map"
+    "main.css": "/fourwings-demo/static/css/main.65fa45d0.chunk.css",
+    "main.js": "/fourwings-demo/static/js/main.398bd74c.chunk.js",
+    "main.js.map": "/fourwings-demo/static/js/main.398bd74c.chunk.js.map",
+    "runtime~main.js": "/fourwings-demo/static/js/runtime~main.8e8390dd.js",
+    "runtime~main.js.map": "/fourwings-demo/static/js/runtime~main.8e8390dd.js.map",
+    "static/js/2.06dd7e05.chunk.js": "/fourwings-demo/static/js/2.06dd7e05.chunk.js",
+    "static/js/2.06dd7e05.chunk.js.map": "/fourwings-demo/static/js/2.06dd7e05.chunk.js.map",
+    "index.html": "/fourwings-demo/index.html",
+    "precache-manifest.c1b8e80344cf98e0bb1a0fe0329d2b7c.js": "/fourwings-demo/precache-manifest.c1b8e80344cf98e0bb1a0fe0329d2b7c.js",
+    "service-worker.js": "/fourwings-demo/service-worker.js",
+    "static/css/main.65fa45d0.chunk.css.map": "/fourwings-demo/static/css/main.65fa45d0.chunk.css.map"
   }
 }

@@ -160,6 +160,7 @@ const Map = () => {
     style.layers[2].metadata &&
     style.layers[2].metadata.currentlyAt;
 
+  console.log(style)
   return (
     <div className="container">
       <ul className="layers">
