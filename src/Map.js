@@ -59,11 +59,11 @@ const Map = () => {
       {
         type: TYPES.BASEMAP,
         id: "graticules"
+      },
+      {
+        type: TYPES.BASEMAP,
+        id: "landmass"
       }
-      // {
-      //   type: TYPES.BASEMAP,
-      //   id: "landmass"
-      // }
     ];
 
     if (fishingVisible) {
